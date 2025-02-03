@@ -1,7 +1,7 @@
 # Laravel OAuth2 Client
 
 [![Tests](https://github.com/antogkou/laravel-oauth2-client/actions/workflows/tests.yml/badge.svg)](https://github.com/antogkou/laravel-oauth2-client/actions)
-[![License](https://img.shields.io/github/license/antogkou/laravel-oauth2-client)](LICENSE.md)
+[![License](https://img.shields.io/github/license/antogkou/laravel-oauth2-client)](LICENSE)
 [![Packagist](https://img.shields.io/packagist/v/antogkou/laravel-oauth2-client)](https://packagist.org/packages/antogkou/laravel-oauth2-client)
 
 A robust Laravel package for OAuth2 Client Credentials flow integration with automatic token management.
@@ -65,6 +65,10 @@ SERVICE1_TOKEN_URL = https://auth.service.com/token
 SERVICE1_SCOPE = api
 ```
 
+I'll help update the Usage section of the README to better document the different ways to make POST, PUT, and PATCH
+requests. Here's the improved version:
+
+```markdown
 ## Usage
 
 ### Basic API Calls
@@ -75,24 +79,134 @@ use Antogkou\LaravelOAuth2Client\Facades\OAuth2;
 // GET request
 $response = OAuth2::for('service1')->get('https://api.service.com/data');
 
-// POST request
+// POST request with JSON payload
 $response = OAuth2::for('service1')->post('https://api.service.com/data', [
-    'key' => 'value'
+    'json' => [
+        'name' => 'John Doe',
+        'email' => 'john@example.com'
+    ]
+]);
+
+// POST form data
+$response = OAuth2::for('service1')->post('https://api.service.com/data', [
+    'form_params' => [
+        'name' => 'John Doe',
+        'email' => 'john@example.com'
+    ]
+]);
+
+// PUT request with JSON payload
+$response = OAuth2::for('service1')->put('https://api.service.com/data/1', [
+    'json' => [
+        'name' => 'Updated Name'
+    ]
+]);
+
+// PATCH request with JSON payload
+$response = OAuth2::for('service1')->patch('https://api.service.com/data/1', [
+    'json' => [
+        'status' => 'active'
+    ]
+]);
+
+// Request with custom headers
+$response = OAuth2::for('service1')->post('https://api.service.com/data', [
+    'json' => [
+        'name' => 'John Doe'
+    ],
+    'headers' => [
+        'X-Custom-Header' => 'value',
+        'Accept' => 'application/json'
+    ]
 ]);
 
 // Get JSON response
 $data = $response->json();
 ```
 
+### Request Options
+
+The package supports various request options that can be passed as an array:
+
+#### JSON Payload
+
+```php
+$options = [
+    'json' => [
+        'key' => 'value',
+        'nested' => ['data' => 'value']
+    ]
+];
+```
+
+#### Form Data
+
+```php
+$options = [
+    'form_params' => [
+        'field1' => 'value1',
+        'field2' => 'value2'
+    ]
+];
+```
+
+#### Multipart/Form-Data (File Uploads)
+
+```php
+$options = [
+    'multipart' => [
+        [
+            'name' => 'file',
+            'contents' => fopen('path/to/file.pdf', 'r')
+        ],
+        [
+            'name' => 'field',
+            'contents' => 'value'
+        ]
+    ]
+];
+```
+
+#### Custom Headers
+
+```php
+$options = [
+    'headers' => [
+        'Accept' => 'application/json',
+        'X-Custom-Header' => 'value'
+    ],
+    'json' => [
+        'data' => 'value'
+    ]
+];
+```
+
 ### Available Methods
 
 ```php
-OAuth2::for('service1')->get($url, $options);
-OAuth2::for('service1')->post($url, $options);
-OAuth2::for('service1')->put($url, $options);
-OAuth2::for('service1')->patch($url, $options);
-OAuth2::for('service1')->delete($url, $options);
-OAuth2::for('service1')->request($method, $url, $options);
+OAuth2::for('service1')->get($url, $options = []);
+OAuth2::for('service1')->post($url, $options = []);
+OAuth2::for('service1')->put($url, $options = []);
+OAuth2::for('service1')->patch($url, $options = []);
+OAuth2::for('service1')->delete($url, $options = []);
+OAuth2::for('service1')->request($method, $url, $options = []);
+```
+
+### Response Handling
+
+```php
+$response = OAuth2::for('service1')->post('https://api.service.com/data', [
+    'json' => ['name' => 'John']
+]);
+
+if ($response->successful()) {
+    $data = $response->json();
+    $status = $response->status(); // 200, 201, etc.
+    $headers = $response->headers();
+} else {
+    $errorData = $response->json();
+    $statusCode = $response->status();
+}
 ```
 
 ## Error Handling
@@ -137,7 +251,7 @@ Contributions welcome! Please follow:
 
 ## License
 
-MIT License - See [LICENSE](LICENSE.md) for details.
+MIT License - See [LICENSE](LICENSE) for details.
 
 ## Support
 
