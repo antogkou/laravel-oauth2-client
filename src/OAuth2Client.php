@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
+/**
+ * @method Response get(string $url, array $options = [])
+ * @method Response post(string $url, array $options = [])
+ * @method Response put(string $url, array $options = [])
+ * @method Response patch(string $url, array $options = [])
+ * @method Response delete(string $url, array $options = [])
+ */
 final class OAuth2Client
 {
     /** @var array{
@@ -62,7 +69,9 @@ final class OAuth2Client
     }
 
     /**
-     * @param  array<int, mixed>  $parameters
+     * @param  array{0: string, 1?: array<string, mixed>}  $parameters
+     *
+     * @throws OAuth2Exception
      */
     public function __call(string $method, array $parameters): Response
     {
