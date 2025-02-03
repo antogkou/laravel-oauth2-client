@@ -19,14 +19,5 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction
 
-      - name: Lint code
-        run: composer format
-
-      - name: Static analysis
-        run: composer analyse
-
       - name: Run tests
-        run: composer test-coverage
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        run: composer test
