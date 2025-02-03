@@ -1,5 +1,6 @@
 {
   "name": "antogkou/laravel-oauth2-client",
+  "version": "0.0.1",
   "authors": [
     {
       "name": "Antonis Gkoutzamanis",
