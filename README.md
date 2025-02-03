@@ -70,13 +70,13 @@ SERVICE1_SCOPE = api
 ### Basic API Calls
 
 ```php
-use Antogkou\LaravelOAuth2Client\Facades\OAuth2Client;
+use Antogkou\LaravelOAuth2Client\Facades\OAuth2;
 
 // GET request
-$response = OAuth2Client::for('service1')->get('https://api.service.com/data');
+$response = OAuth2::for('service1')->get('https://api.service.com/data');
 
 // POST request
-$response = OAuth2Client::for('service1')->post('https://api.service.com/data', [
+$response = OAuth2::for('service1')->post('https://api.service.com/data', [
     'key' => 'value'
 ]);
 
@@ -87,12 +87,12 @@ $data = $response->json();
 ### Available Methods
 
 ```php
-OAuth2Client::for('service1')->get($url, $options);
-OAuth2Client::for('service1')->post($url, $options);
-OAuth2Client::for('service1')->put($url, $options);
-OAuth2Client::for('service1')->patch($url, $options);
-OAuth2Client::for('service1')->delete($url, $options);
-OAuth2Client::for('service1')->request($method, $url, $options);
+OAuth2::for('service1')->get($url, $options);
+OAuth2::for('service1')->post($url, $options);
+OAuth2::for('service1')->put($url, $options);
+OAuth2::for('service1')->patch($url, $options);
+OAuth2::for('service1')->delete($url, $options);
+OAuth2::for('service1')->request($method, $url, $options);
 ```
 
 ## Error Handling
@@ -101,7 +101,7 @@ The package throws `Antogkou\LaravelOAuth2Client\Exceptions\OAuth2Exception` for
 
 ```php
 try {
-    OAuth2Client::for('service1')->get('https://api.service.com/data');
+    OAuth2::for('service1')->get('https://api.service.com/data');
 } catch (OAuth2Exception $e) {
     // Handle exception
     $errorContext = $e->getContext();

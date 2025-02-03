@@ -9,6 +9,7 @@ return [
             'client_secret' => env('OAUTH2_CLIENT_SECRET'),
             'token_url' => env('OAUTH2_TOKEN_URL'),
             'scope' => env('OAUTH2_SCOPE', ''),
+            'base_uri' => env('OAUTH2_BASE_URI'),
         ],
     ],
     'cache_prefix' => 'oauth2_',

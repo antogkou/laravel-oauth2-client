@@ -1,6 +1,5 @@
 {
   "name": "antogkou/laravel-oauth2-client",
-  "version": "0.0.1",
   "authors": [
     {
       "name": "Antonis Gkoutzamanis",
@@ -47,6 +46,12 @@
     }
   },
   "scripts": {
+    "post-install-cmd": [
+      "@php artisan oauth2:generate-types"
+    ],
+    "post-update-cmd": [
+      "@php artisan oauth2:generate-types"
+    ],
     "refactor": "rector",
     "lint": "pint",
     "test:refactor": "rector --dry-run",
