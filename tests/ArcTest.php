@@ -8,8 +8,7 @@ arch()->preset()->php();
 
 arch()->preset()->security()->ignoring('assert');
 
-arch()->preset()->laravel()
-    ->ignoring('App\Providers\Filament\CitadelPanelProvider');
+arch()->preset()->laravel();
 
 arch('strict types')
     ->expect('App')

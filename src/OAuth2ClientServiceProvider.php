@@ -11,7 +11,7 @@ final class OAuth2ClientServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(OAuth2Client::class,
-            fn($app, array $parameters): OAuth2Client => new OAuth2Client($parameters['service']));
+            fn ($app, array $parameters): OAuth2Client => new OAuth2Client($parameters['service']));
 
         $this->mergeConfigFrom(
             __DIR__.'/../config/oauth2-client.php', 'oauth2-client'

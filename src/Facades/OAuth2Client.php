@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Facade;
  */
 final class OAuth2Client extends Facade
 {
-    public static function for(string $service)
+    public static function for(string $service): \Antogkou\LaravelOAuth2Client\OAuth2Client
     {
         return app(\Antogkou\LaravelOAuth2Client\OAuth2Client::class, ['service' => $service]);
     }

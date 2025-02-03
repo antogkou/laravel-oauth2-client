@@ -8,8 +8,12 @@ use RuntimeException;
 
 final class OAuth2Exception extends RuntimeException
 {
+    /** @var array<string, mixed> */
     private array $context = [];
 
+    /**
+     * @param  array<string, mixed>  $context
+     */
     public function withContext(array $context): self
     {
         $this->context = $context;
@@ -17,6 +21,9 @@ final class OAuth2Exception extends RuntimeException
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getContext(): array
     {
         return $this->context;
