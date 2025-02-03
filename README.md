@@ -2,6 +2,7 @@
 
 [![Tests](https://github.com/antogkou/laravel-oauth2-client/actions/workflows/tests.yml/badge.svg)](https://github.com/antogkou/laravel-oauth2-client/actions)
 [![License](https://img.shields.io/github/license/antogkou/laravel-oauth2-client)](LICENSE.md)
+[![Packagist](https://img.shields.io/packagist/v/antogkou/laravel-oauth2-client)](https://packagist.org/packages/antogkou/laravel-oauth2-client)
 
 A robust Laravel package for OAuth2 Client Credentials flow integration with automatic token management.
 
