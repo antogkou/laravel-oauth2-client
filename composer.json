@@ -20,19 +20,19 @@
     }
   },
   "require": {
-    "php": "^8.2",
-    "laravel/framework": "^11.0",
+    "php": "^8.2|^8.3|^8.4",
+    "laravel/framework": "^11.0|^12.0",
     "guzzlehttp/guzzle": "^7.8"
   },
   "require-dev": {
     "laravel/pint": "^1.13",
-    "orchestra/testbench": "^8.0|^9.0",
+    "orchestra/testbench": "^8.0|^9.0|^10.0",
     "pestphp/pest": "^v3.5.1",
     "pestphp/pest-plugin-laravel": "^v3.0.0",
     "pestphp/pest-plugin-type-coverage": "^3.1",
     "phpstan/phpstan": "^1.0",
     "friendsofphp/php-cs-fixer": "^v3.64.0",
-    "larastan/larastan": "v2.9.11",
+    "larastan/larastan": "^2.9.11",
     "rector/rector": "^1.2.10"
   },
   "extra": {
@@ -46,12 +46,6 @@
     }
   },
   "scripts": {
-    "post-install-cmd": [
-      "@php artisan oauth2:generate-types"
-    ],
-    "post-update-cmd": [
-      "@php artisan oauth2:generate-types"
-    ],
     "refactor": "rector",
     "lint": "pint",
     "test:refactor": "rector --dry-run",

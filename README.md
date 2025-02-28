@@ -19,6 +19,7 @@ A robust Laravel package for OAuth2 Client Credentials flow integration with aut
 
 ```bash
 composer require antogkou/laravel-oauth2-client
+php artisan oauth2:generate-types
 ```
 
 Publish configuration file:
@@ -68,7 +69,7 @@ SERVICE1_SCOPE = api
 I'll help update the Usage section of the README to better document the different ways to make POST, PUT, and PATCH
 requests. Here's the improved version:
 
-```markdown
+````markdown
 ## Usage
 
 ### Basic API Calls
@@ -123,6 +124,7 @@ $response = OAuth2::for('service1')->post('https://api.service.com/data', [
 // Get JSON response
 $data = $response->json();
 ```
+````
 
 ### Request Options
 
@@ -257,5 +259,3 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 For issues and feature requests,
 please [create a GitHub issue](https://github.com/antogkou/laravel-oauth2-client/issues).
-
-

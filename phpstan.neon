@@ -4,3 +4,4 @@ parameters:
         - src
 
     reportUnmatchedIgnoredErrors: true
+    phpVersion: 80400  # PHP 8.4

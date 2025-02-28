@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Antogkou\LaravelOAuth2Client\Tests\Feature;
 
 use Antogkou\LaravelOAuth2Client\Exceptions\OAuth2Exception;
-use Antogkou\LaravelOAuth2Client\Facades\OAuth2Client;
+use Antogkou\LaravelOAuth2Client\Facades\OAuth2;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -33,7 +33,7 @@ test('fetches and caches token', function (): void {
         'https://api.example.com/data' => Http::response(['success' => true], 200),
     ]);
 
-    $response = OAuth2Client::for('test_service')->get('https://api.example.com/data');
+    $response = OAuth2::for('test_service')->get('https://api.example.com/data');
 
     expect($response->status())->toBe(200)
         ->and(Cache::get('oauth2_test_service_access_token'))->toBe('test-token');
@@ -54,7 +54,7 @@ test('logs error for failed token fetch', function (): void {
     //        ->with('Token fetch failed for service test_service', Mockery::any());
 
     try {
-        OAuth2Client::for('test_service')->get('https://api.example.com/data');
+        OAuth2::for('test_service')->get('https://api.example.com/data');
     } catch (Exception $e) {
         //        dd($e->getMessage());
         // Assert correct exception type
