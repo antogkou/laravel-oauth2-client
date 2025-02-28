@@ -46,12 +46,6 @@
     }
   },
   "scripts": {
-    "post-install-cmd": [
-      "@php artisan oauth2:generate-types"
-    ],
-    "post-update-cmd": [
-      "@php artisan oauth2:generate-types"
-    ],
     "refactor": "rector",
     "lint": "pint",
     "test:refactor": "rector --dry-run",
