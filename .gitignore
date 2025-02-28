@@ -8,6 +8,7 @@ composer.lock
 *.cache
 *.log
 build
+.DS_Store
 
 # .gitattributes
 * text=auto

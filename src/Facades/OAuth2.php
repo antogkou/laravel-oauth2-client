@@ -21,9 +21,6 @@ use Illuminate\Support\Facades\Facade;
  */
 final class OAuth2 extends Facade
 {
-    /**
-     * @param 'default'|string $service
-     */
     public static function for(string $service): OAuth2Client
     {
         return app(OAuth2Client::class, ['service' => $service]);
