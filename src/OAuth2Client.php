@@ -84,22 +84,11 @@ final class OAuth2Client
      * Magic method to handle HTTP requests.
      *
      * @param  string  $method  HTTP method name (get, post, put, patch, delete)
-     * @param  array  $parameters  [url, options]
-     *
-     * @throws OAuth2Exception
-     */
-    /**
-     * Magic method to handle HTTP requests.
-     *
-     * @param  string           $method      HTTP method name (get, post, put, patch, delete)
      * @param  array<int, mixed>  $parameters  [url, options]
      *
      * @throws OAuth2Exception
      */
     public function __call(string $method, array $parameters): Response
-    {
-        // existing implementation...
-    }
     {
         if (empty($parameters[0]) || ! is_string($parameters[0])) {
             throw new OAuth2Exception('URL parameter must be a string');
@@ -411,7 +400,7 @@ final class OAuth2Client
     /**
      * Create a configuration exception.
      *
-     * @param string $message The error message for the exception.
+     * @param  string  $message  The error message for the exception.
      * @return OAuth2Exception The created configuration exception.
      */
     private function createConfigException(string $message): OAuth2Exception
