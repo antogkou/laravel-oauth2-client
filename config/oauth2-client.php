@@ -10,6 +10,7 @@ return [
             'token_url' => env('OAUTH2_TOKEN_URL'),
             'scope' => env('OAUTH2_SCOPE', ''),
             'base_uri' => env('OAUTH2_BASE_URI'),
+            'verify' => env('OAUTH2_VERIFY', true),
         ],
     ],
     'cache_prefix' => 'oauth2_',

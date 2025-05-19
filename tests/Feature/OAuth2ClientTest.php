@@ -9,8 +9,6 @@ use Antogkou\LaravelOAuth2Client\Facades\OAuth2;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Mockery;
 
 beforeEach(function (): void {
     config([
@@ -67,3 +65,33 @@ test('logs error for failed token fetch', function (): void {
     Http::assertSentCount(1);
     Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.example.com/token');
 })->skip('Log::shouldReceive not working');
+
+test('disables SSL verification when verify is false', function (): void {
+    // Clear the cache to ensure we're starting with a clean state
+    Cache::flush();
+
+    // Configure a service with verify set to false
+    config([
+        'oauth2-client.services.no_verify_service' => [
+            'client_id' => 'test-client',
+            'client_secret' => 'test-secret',
+            'token_url' => 'https://auth.example.com/token',
+            'scope' => 'api',
+            'verify' => false,
+        ],
+    ]);
+
+    Http::fake([
+        'https://auth.example.com/token' => Http::response([
+            'access_token' => 'no-verify-token',
+            'expires_in' => 3600,
+        ]),
+        'https://api.example.com/data' => Http::response(['success' => true], 200),
+    ]);
+
+    // Make a request using the service with verify=false
+    $response = OAuth2::for('no_verify_service')->get('https://api.example.com/data');
+
+    expect($response->status())->toBe(200)
+        ->and(Cache::get('oauth2_no_verify_service_access_token'))->toBe('no-verify-token');
+});
