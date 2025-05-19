@@ -399,6 +399,9 @@ final class OAuth2Client
 
     /**
      * Create a configuration exception.
+     *
+     * @param string $message The error message for the exception.
+     * @return OAuth2Exception The created configuration exception.
      */
     private function createConfigException(string $message): OAuth2Exception
     {
