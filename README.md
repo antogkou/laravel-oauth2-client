@@ -40,6 +40,7 @@ return [
             'client_secret' => env('SERVICE1_CLIENT_SECRET'),
             'token_url' => env('SERVICE1_TOKEN_URL'),
             'scope' => env('SERVICE1_SCOPE', ''),
+            'verify' => env('SERVICE1_VERIFY', true),
         ],
     ],
     'cache_prefix' => 'oauth2_',
@@ -64,12 +65,9 @@ SERVICE1_CLIENT_ID = your_client_id
 SERVICE1_CLIENT_SECRET = your_client_secret
 SERVICE1_TOKEN_URL = https://auth.service.com/token
 SERVICE1_SCOPE = api
+SERVICE1_VERIFY = true # Set to false to disable SSL verification
 ```
 
-I'll help update the Usage section of the README to better document the different ways to make POST, PUT, and PATCH
-requests. Here's the improved version:
-
-````markdown
 ## Usage
 
 ### Basic API Calls

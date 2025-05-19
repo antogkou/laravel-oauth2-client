@@ -14,6 +14,8 @@ use RuntimeException;
 use Throwable;
 
 /**
+ * OAuth2 Client for handling API requests with automatic token management.
+ *
  * @method Response get(string $url, array $options = [])
  * @method Response post(string $url, array $options = [])
  * @method Response put(string $url, array $options = [])
@@ -26,7 +28,8 @@ final class OAuth2Client
      *     token_url: string,
      *     client_id: string,
      *     client_secret: string,
-     *     scope?: string
+     *     scope?: string,
+     *     verify?: bool
      * }
      */
     private array $config;
@@ -35,33 +38,42 @@ final class OAuth2Client
 
     private DateTimeImmutable $expiresAt;
 
+    /**
+     * Create a new OAuth2 client instance.
+     *
+     * @param  string  $serviceName  The configured OAuth2 service name
+     *
+     * @throws OAuth2Exception If the service configuration is invalid
+     */
     public function __construct(private readonly string $serviceName)
     {
         /** @var mixed $rawConfig */
         $rawConfig = config("oauth2-client.services.{$this->serviceName}", []);
 
         if (! is_array($rawConfig)) {
-            throw new OAuth2Exception("Invalid configuration type for service: {$this->serviceName}");
+            throw $this->createConfigException('Invalid configuration type for service');
         }
 
         if ($rawConfig === []) {
-            throw new OAuth2Exception("No configuration found for service: {$this->serviceName}");
+            throw $this->createConfigException('No configuration found for service');
         }
 
         if (! isset($rawConfig['token_url'], $rawConfig['client_id'], $rawConfig['client_secret']) ||
             ! is_string($rawConfig['token_url']) ||
             ! is_string($rawConfig['client_id']) ||
             ! is_string($rawConfig['client_secret']) ||
-            (isset($rawConfig['scope']) && ! is_string($rawConfig['scope']))
+            (isset($rawConfig['scope']) && ! is_string($rawConfig['scope'])) ||
+            (isset($rawConfig['verify']) && ! is_bool($rawConfig['verify']))
         ) {
-            throw new OAuth2Exception("Invalid configuration format for service: {$this->serviceName}");
+            throw $this->createConfigException('Invalid configuration format for service');
         }
 
         /** @var array{
          *     token_url: string,
          *     client_id: string,
          *     client_secret: string,
-         *     scope?: string
+         *     scope?: string,
+         *     verify?: bool
          * } $rawConfig
          */
         $this->config = $rawConfig;
@@ -69,13 +81,16 @@ final class OAuth2Client
     }
 
     /**
-     * @param  array{0: string, 1?: array<string, mixed>}  $parameters
+     * Magic method to handle HTTP requests.
+     *
+     * @param  string  $method  HTTP method name (get, post, put, patch, delete)
+     * @param  array<int, mixed>  $parameters  [url, options]
      *
      * @throws OAuth2Exception
      */
     public function __call(string $method, array $parameters): Response
     {
-        if (! isset($parameters[0]) || ! is_string($parameters[0])) {
+        if (empty($parameters[0]) || ! is_string($parameters[0])) {
             throw new OAuth2Exception('URL parameter must be a string');
         }
 
@@ -86,37 +101,136 @@ final class OAuth2Client
     }
 
     /**
-     * @param  array<string, mixed>  $options
+     * Make an HTTP request with OAuth2 authentication.
+     *
+     * @param  string  $method  HTTP method
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Request options
+     *
+     * @throws OAuth2Exception
      */
     public function request(string $method, string $url, array $options = []): Response
     {
         $this->ensureValidToken();
 
         try {
-            $response = Http::withToken($this->accessToken)
-                ->send($method, $url, $options);
+            $http = Http::withToken($this->accessToken)
+                ->acceptJson();
+
+            // Disable SSL verification if configured
+            if ($this->shouldDisableSSLVerification()) {
+                $http = $http->withoutVerifying();
+            }
+
+            $response = $http->send($method, $url, $options);
 
             if ($response->failed()) {
-                $this->logApiError($method, $url, $response);
-                $response->throw();
+                return $this->handleFailedResponse($method, $url, $response);
             }
 
             return $response;
         } catch (Throwable $e) {
-            Log::error("API request exception for service {$this->serviceName}", [
-                'method' => $method,
-                'url' => $url,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            throw new OAuth2Exception(
-                "API request failed for service {$this->serviceName}: ".$e->getMessage(),
-                $e->getCode(),
-                $e
-            );
+            return $this->handleRequestException($method, $url, $e, $options);
         }
     }
 
+    /**
+     * Determine if SSL verification should be disabled.
+     *
+     * @return bool Returns true if verify is explicitly set to false in the config
+     */
+    private function shouldDisableSSLVerification(): bool
+    {
+        return isset($this->config['verify']) && $this->config['verify'] === false;
+    }
+
+    /**
+     * Handle a failed HTTP response.
+     *
+     * @param  string  $method  HTTP method
+     * @param  string  $url  Request URL
+     * @param  Response  $response  Failed response
+     *
+     * @throws OAuth2Exception
+     */
+    private function handleFailedResponse(string $method, string $url, Response $response): never
+    {
+        $context = [
+            'method' => $method,
+            'url' => $url,
+            'status' => $response->status(),
+            'response' => $this->safeJsonDecode($response->body()),
+            'service' => $this->serviceName,
+        ];
+
+        Log::error("API request failed for service {$this->serviceName}", $context);
+
+        $message = "API request failed for service {$this->serviceName} with status {$response->status()}";
+
+        throw (new OAuth2Exception($message, $response->status()))
+            ->withContext($context);
+    }
+
+    /**
+     * Handle a request exception.
+     *
+     * @param  string  $method  HTTP method
+     * @param  string  $url  Request URL
+     * @param  Throwable  $exception  The exception that occurred
+     * @param  array<string, mixed>  $options  Request options that were used
+     *
+     * @throws OAuth2Exception
+     */
+    private function handleRequestException(string $method, string $url, Throwable $exception, array $options): never
+    {
+        $context = [
+            'method' => $method,
+            'url' => $url,
+            'error' => $exception->getMessage(),
+            'service' => $this->serviceName,
+            'options' => $this->sanitizeOptions($options),
+        ];
+
+        Log::error("API request exception for service {$this->serviceName}", $context);
+
+        throw (new OAuth2Exception(
+            "API request failed for service {$this->serviceName}: ".$exception->getMessage(),
+            $exception->getCode() ?: 0,
+            $exception
+        ))->withContext($context);
+    }
+
+    /**
+     * Sanitize request options to remove sensitive data.
+     *
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    private function sanitizeOptions(array $options): array
+    {
+        $sanitized = $options;
+
+        // Remove potentially sensitive data
+        if (isset($sanitized['json'])) {
+            $sanitized['json'] = '[Redacted for security]';
+        }
+
+        if (isset($sanitized['form_params'])) {
+            $sanitized['form_params'] = '[Redacted for security]';
+        }
+
+        if (isset($sanitized['multipart'])) {
+            $sanitized['multipart'] = '[Redacted for security]';
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Ensure a valid access token is available.
+     *
+     * @throws OAuth2Exception
+     */
     private function ensureValidToken(): void
     {
         $this->getCachedToken();
@@ -126,6 +240,9 @@ final class OAuth2Client
         }
     }
 
+    /**
+     * Get cached token from Laravel Cache.
+     */
     private function getCachedToken(): void
     {
         /** @var string */
@@ -146,16 +263,34 @@ final class OAuth2Client
         $this->expiresAt = $expiresAt;
     }
 
+    /**
+     * Check if the current token is valid.
+     */
     private function hasValidToken(): bool
     {
+        $bufferSeconds = (int) config('oauth2-client.expiration_buffer', 60);
+
         return $this->accessToken !== '' &&
-            $this->expiresAt->getTimestamp() > (time() + config('oauth2-client.expiration_buffer', 0));
+            $this->expiresAt->getTimestamp() > (time() + $bufferSeconds);
     }
 
+    /**
+     * Fetch a new access token from the OAuth2 server.
+     *
+     * @throws OAuth2Exception
+     */
     private function fetchNewToken(): void
     {
         try {
-            $response = Http::asForm()->post($this->config['token_url'], [
+            $http = Http::asForm()
+                ->acceptJson();
+
+            // Disable SSL verification if configured
+            if (isset($this->config['verify']) && $this->config['verify'] === false) {
+                $http = $http->withoutVerifying();
+            }
+
+            $response = $http->post($this->config['token_url'], [
                 'grant_type' => 'client_credentials',
                 'client_id' => $this->config['client_id'],
                 'client_secret' => $this->config['client_secret'],
@@ -163,29 +298,83 @@ final class OAuth2Client
             ]);
 
             if ($response->successful()) {
-                /** @var array{access_token: string, expires_in: int} */
-                $data = $response->json();
-                $this->storeToken($data['access_token'], $data['expires_in']);
+                $this->processTokenResponse($response);
             } else {
-                $this->logTokenError($response);
-                throw new OAuth2Exception(
-                    "Failed to obtain access token for service: {$this->serviceName}",
-                    $response->status()
-                );
+                $this->handleFailedTokenResponse($response);
             }
         } catch (Throwable $e) {
-            Log::error("Token fetch exception for service {$this->serviceName}", [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            throw new OAuth2Exception(
-                "Token fetch failed for service {$this->serviceName}: ".$e->getMessage(),
-                $e->getCode(),
-                $e
-            );
+            $this->handleTokenException($e);
         }
     }
 
+    /**
+     * Process a successful token response.
+     *
+     * @throws OAuth2Exception
+     */
+    private function processTokenResponse(Response $response): void
+    {
+        $data = $response->json();
+
+        if (! isset($data['access_token']) || ! isset($data['expires_in'])) {
+            $context = [
+                'response' => $this->safeJsonDecode($response->body()),
+                'service' => $this->serviceName,
+            ];
+
+            throw (new OAuth2Exception(
+                "Invalid token response format for service: {$this->serviceName}"
+            ))->withContext($context);
+        }
+
+        $this->storeToken($data['access_token'], (int) $data['expires_in']);
+    }
+
+    /**
+     * Handle a failed token response.
+     *
+     * @throws OAuth2Exception
+     */
+    private function handleFailedTokenResponse(Response $response): never
+    {
+        $context = [
+            'status' => $response->status(),
+            'response' => $this->safeJsonDecode($response->body()),
+            'service' => $this->serviceName,
+        ];
+
+        Log::error("Token fetch failed for service {$this->serviceName}", $context);
+
+        throw (new OAuth2Exception(
+            "Failed to obtain access token for service: {$this->serviceName}",
+            $response->status()
+        ))->withContext($context);
+    }
+
+    /**
+     * Handle a token fetch exception.
+     *
+     * @throws OAuth2Exception
+     */
+    private function handleTokenException(Throwable $exception): never
+    {
+        $context = [
+            'error' => $exception->getMessage(),
+            'service' => $this->serviceName,
+        ];
+
+        Log::error("Token fetch exception for service {$this->serviceName}", $context);
+
+        throw (new OAuth2Exception(
+            "Token fetch failed for service {$this->serviceName}: ".$exception->getMessage(),
+            $exception->getCode() ?: 0,
+            $exception
+        ))->withContext($context);
+    }
+
+    /**
+     * Store the access token in cache.
+     */
     private function storeToken(string $accessToken, int $expiresIn): void
     {
         $expiresAt = now()->addSeconds($expiresIn);
@@ -208,27 +397,25 @@ final class OAuth2Client
         $this->expiresAt = $expiresAt->toImmutable();
     }
 
-    private function logTokenError(Response $response): void
+    /**
+     * Safely decode JSON string.
+     */
+    private function safeJsonDecode(string $json): mixed
     {
-        Log::error("Token fetch failed for service {$this->serviceName}", [
-            'status' => $response->status(),
-            'headers' => $response->headers(),
-            'response' => $response->body(),
-            'service' => $this->serviceName,
-            'timestamp' => now()->toIso8601String(),
-        ]);
+        $data = json_decode($json, true);
+
+        return $data ?? $json;
     }
 
-    private function logApiError(string $method, string $url, Response $response): void
+    /**
+     * Create a configuration exception.
+     *
+     * @param  string  $message  The error message for the exception.
+     * @return OAuth2Exception The created configuration exception.
+     */
+    private function createConfigException(string $message): OAuth2Exception
     {
-        Log::error("API request failed for service {$this->serviceName}", [
-            'method' => $method,
-            'url' => $url,
-            'status' => $response->status(),
-            'headers' => $response->headers(),
-            'response' => $response->body(),
-            'service' => $this->serviceName,
-            'timestamp' => now()->toIso8601String(),
-        ]);
+        return (new OAuth2Exception("{$message}: {$this->serviceName}"))
+            ->withContext(['service' => $this->serviceName]);
     }
 }
