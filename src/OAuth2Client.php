@@ -118,7 +118,7 @@ final class OAuth2Client
                 ->acceptJson();
 
             // Disable SSL verification if configured
-            if (isset($this->config['verify']) && $this->config['verify'] === false) {
+            if ($this->shouldDisableSSLVerification()) {
                 $http = $http->withoutVerifying();
             }
 
