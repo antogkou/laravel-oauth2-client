@@ -135,6 +135,16 @@ final class OAuth2Client
     }
 
     /**
+     * Determine if SSL verification should be disabled.
+     *
+     * @return bool Returns true if verify is explicitly set to false in the config
+     */
+    private function shouldDisableSSLVerification(): bool
+    {
+        return isset($this->config['verify']) && $this->config['verify'] === false;
+    }
+
+    /**
      * Handle a failed HTTP response.
      *
      * @param  string  $method  HTTP method
