@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 
 pest()->extend(TestCase::class, RefreshDatabase::class)->beforeEach(function (): void {
     Storage::fake('public');
+    Http::preventStrayRequests();
 });
 
 /*
