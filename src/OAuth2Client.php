@@ -155,19 +155,36 @@ final class OAuth2Client
      */
     private function handleFailedResponse(string $method, string $url, Response $response): never
     {
+        $responseData = $this->safeJsonDecode($response->body());
+        $statusCode = $response->status();
+
         $context = [
             'method' => $method,
             'url' => $url,
-            'status' => $response->status(),
-            'response' => $this->safeJsonDecode($response->body()),
+            'status' => $statusCode,
+            'response' => $responseData,
             'service' => $this->serviceName,
         ];
 
         Log::error("API request failed for service {$this->serviceName}", $context);
 
-        $message = "API request failed for service {$this->serviceName} with status {$response->status()}";
+        // Build a more detailed error message
+        $message = "API request failed for service {$this->serviceName} with status {$statusCode}";
 
-        throw (new OAuth2Exception($message, $response->status()))
+        // Add error details from the response if available
+        if (is_array($responseData)) {
+            if (isset($responseData['error'])) {
+                $message .= ": {$responseData['error']}";
+
+                if (isset($responseData['error_description'])) {
+                    $message .= " - {$responseData['error_description']}";
+                }
+            } elseif (isset($responseData['message'])) {
+                $message .= ": {$responseData['message']}";
+            }
+        }
+
+        throw (new OAuth2Exception($message, $statusCode))
             ->withContext($context);
     }
 
@@ -183,6 +200,29 @@ final class OAuth2Client
      */
     private function handleRequestException(string $method, string $url, Throwable $exception, array $options): never
     {
+        // Extract HTTP status code if available
+        $statusCode = $exception->getCode() ?: 0;
+
+        // Try to extract response data if it's a HTTP client exception
+        $responseData = null;
+        if (method_exists($exception, 'getResponse') && $exception->getResponse() !== null) {
+            $response = $exception->getResponse();
+            if (method_exists($response, 'body')) {
+                $responseData = $this->safeJsonDecode($response->body());
+            }
+            if (method_exists($response, 'status')) {
+                $statusCode = $response->status();
+            }
+        } elseif (property_exists($exception, 'response') && isset($exception->response)) {
+            $response = $exception->response;
+            if (method_exists($response, 'body')) {
+                $responseData = $this->safeJsonDecode($response->body());
+            }
+            if (method_exists($response, 'status')) {
+                $statusCode = $response->status();
+            }
+        }
+
         $context = [
             'method' => $method,
             'url' => $url,
@@ -191,11 +231,41 @@ final class OAuth2Client
             'options' => $this->sanitizeOptions($options),
         ];
 
+        // Add response data to context if available
+        if ($responseData !== null) {
+            $context['response'] = $responseData;
+            $context['status'] = $statusCode;
+        }
+
         Log::error("API request exception for service {$this->serviceName}", $context);
 
+        // Build a more detailed error message
+        $message = "API request failed for service {$this->serviceName}";
+
+        // Add status code if available
+        if ($statusCode > 0) {
+            $message .= " with status {$statusCode}";
+        }
+
+        // Add exception message
+        $message .= ': '.$exception->getMessage();
+
+        // Add error details from the response if available
+        if (is_array($responseData)) {
+            if (isset($responseData['error'])) {
+                $message .= " ({$responseData['error']})";
+
+                if (isset($responseData['error_description'])) {
+                    $message .= " - {$responseData['error_description']}";
+                }
+            } elseif (isset($responseData['message'])) {
+                $message .= " ({$responseData['message']})";
+            }
+        }
+
         throw (new OAuth2Exception(
-            "API request failed for service {$this->serviceName}: ".$exception->getMessage(),
-            $exception->getCode() ?: 0,
+            $message,
+            $statusCode,
             $exception
         ))->withContext($context);
     }
@@ -337,17 +407,36 @@ final class OAuth2Client
      */
     private function handleFailedTokenResponse(Response $response): never
     {
+        $responseData = $this->safeJsonDecode($response->body());
+        $statusCode = $response->status();
+
         $context = [
-            'status' => $response->status(),
-            'response' => $this->safeJsonDecode($response->body()),
+            'status' => $statusCode,
+            'response' => $responseData,
             'service' => $this->serviceName,
         ];
 
         Log::error("Token fetch failed for service {$this->serviceName}", $context);
 
+        // Build a more detailed error message
+        $message = "Failed to obtain access token for service: {$this->serviceName} with status {$statusCode}";
+
+        // Add error details from the response if available
+        if (is_array($responseData)) {
+            if (isset($responseData['error'])) {
+                $message .= ": {$responseData['error']}";
+
+                if (isset($responseData['error_description'])) {
+                    $message .= " - {$responseData['error_description']}";
+                }
+            } elseif (isset($responseData['message'])) {
+                $message .= ": {$responseData['message']}";
+            }
+        }
+
         throw (new OAuth2Exception(
-            "Failed to obtain access token for service: {$this->serviceName}",
-            $response->status()
+            $message,
+            $statusCode
         ))->withContext($context);
     }
 
@@ -358,16 +447,69 @@ final class OAuth2Client
      */
     private function handleTokenException(Throwable $exception): never
     {
+        // Extract HTTP status code if available
+        $statusCode = $exception->getCode() ?: 0;
+
+        // Try to extract response data if it's a HTTP client exception
+        $responseData = null;
+        if (method_exists($exception, 'getResponse') && $exception->getResponse() !== null) {
+            $response = $exception->getResponse();
+            if (method_exists($response, 'body')) {
+                $responseData = $this->safeJsonDecode($response->body());
+            }
+            if (method_exists($response, 'status')) {
+                $statusCode = $response->status();
+            }
+        } elseif (property_exists($exception, 'response') && isset($exception->response)) {
+            $response = $exception->response;
+            if (method_exists($response, 'body')) {
+                $responseData = $this->safeJsonDecode($response->body());
+            }
+            if (method_exists($response, 'status')) {
+                $statusCode = $response->status();
+            }
+        }
+
         $context = [
             'error' => $exception->getMessage(),
             'service' => $this->serviceName,
         ];
 
+        // Add response data to context if available
+        if ($responseData !== null) {
+            $context['response'] = $responseData;
+            $context['status'] = $statusCode;
+        }
+
         Log::error("Token fetch exception for service {$this->serviceName}", $context);
 
+        // Build a more detailed error message
+        $message = "Failed to obtain access token for service: {$this->serviceName}";
+
+        // Add status code if available
+        if ($statusCode > 0) {
+            $message .= " with status {$statusCode}";
+        }
+
+        // Add exception message
+        $message .= ': '.$exception->getMessage();
+
+        // Add error details from the response if available
+        if (is_array($responseData)) {
+            if (isset($responseData['error'])) {
+                $message .= " ({$responseData['error']})";
+
+                if (isset($responseData['error_description'])) {
+                    $message .= " - {$responseData['error_description']}";
+                }
+            } elseif (isset($responseData['message'])) {
+                $message .= " ({$responseData['message']})";
+            }
+        }
+
         throw (new OAuth2Exception(
-            "Token fetch failed for service {$this->serviceName}: ".$exception->getMessage(),
-            $exception->getCode() ?: 0,
+            $message,
+            $statusCode,
             $exception
         ))->withContext($context);
     }
