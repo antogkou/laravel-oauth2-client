@@ -106,10 +106,11 @@ final class OAuth2Client
      * @param  string  $method  HTTP method
      * @param  string  $url  Request URL
      * @param  array<string, mixed>  $options  Request options
+     * @param  bool  $isRetry  Whether this is a retry attempt after a 401 error
      *
      * @throws OAuth2Exception
      */
-    public function request(string $method, string $url, array $options = []): Response
+    public function request(string $method, string $url, array $options = [], bool $isRetry = false): Response
     {
         $this->ensureValidToken();
 
@@ -125,7 +126,7 @@ final class OAuth2Client
             $response = $http->send($method, $url, $options);
 
             if ($response->failed()) {
-                return $this->handleFailedResponse($method, $url, $response);
+                return $this->handleFailedResponse($method, $url, $response, $options, $isRetry);
             }
 
             return $response;
@@ -150,13 +151,27 @@ final class OAuth2Client
      * @param  string  $method  HTTP method
      * @param  string  $url  Request URL
      * @param  Response  $response  Failed response
+     * @param  array<string, mixed>  $options  Request options
+     * @param  bool  $isRetry  Whether this is a retry attempt after a 401 error
+     * @return Response When retrying a request after refreshing the token
      *
      * @throws OAuth2Exception
      */
-    private function handleFailedResponse(string $method, string $url, Response $response): never
+    private function handleFailedResponse(string $method, string $url, Response $response, array $options = [], bool $isRetry = false): Response
     {
         $responseData = $this->safeJsonDecode($response->body());
         $statusCode = $response->status();
+
+        // If we get a 401 and this is not a retry attempt, try to refresh the token and retry
+        if ($statusCode === 401 && ! $isRetry) {
+            Log::info("Received 401 error, attempting to refresh token and retry for service {$this->serviceName}");
+
+            // Force fetch a new token
+            $this->fetchNewToken();
+
+            // Retry the request with the new token, marking it as a retry
+            return $this->request($method, $url, $options, true);
+        }
 
         $context = [
             'method' => $method,
