@@ -119,6 +119,32 @@ final class OAuth2Exception extends RuntimeException implements Responsable
     }
 
     /**
+     * Get the clean error message without the service and status prefix.
+     *
+     * @return string The clean error message
+     */
+    public function getCleanMessage(): string
+    {
+        $message = $this->getMessage();
+
+        // Common patterns for error message prefixes
+        $patterns = [
+            '/API request failed for service .+ with status \d+: (.+)/',
+            '/Failed to obtain access token for service: .+ with status \d+: (.+)/',
+            '/API request failed for service .+: (.+)/',
+            '/Failed to obtain access token for service: .+: (.+)/',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $message, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        return $message;
+    }
+
+    /**
      * Convert the exception to an HTTP response.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -131,7 +157,7 @@ final class OAuth2Exception extends RuntimeException implements Responsable
             : self::DEFAULT_STATUS_CODE;
 
         $response = [
-            'message' => $this->getMessage(),
+            'message' => $this->getCleanMessage(),
             'code' => $this->getCode(),
             'context' => $this->getContext(),
         ];
