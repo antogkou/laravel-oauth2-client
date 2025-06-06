@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
+    // Clear the cache to ensure we're starting with a clean state for each test
+    Cache::flush();
+
     config([
         'oauth2-client.services.test_service' => [
             'client_id' => 'test-client',
@@ -67,8 +70,6 @@ test('logs error for failed token fetch', function (): void {
 })->skip('Log::shouldReceive not working');
 
 test('disables SSL verification when verify is false', function (): void {
-    // Clear the cache to ensure we're starting with a clean state
-    Cache::flush();
 
     // Configure a service with verify set to false
     config([
@@ -94,4 +95,40 @@ test('disables SSL verification when verify is false', function (): void {
 
     expect($response->status())->toBe(200)
         ->and(Cache::get('oauth2_no_verify_service_access_token'))->toBe('no-verify-token');
+});
+
+test('retries request with new token on 401 error', function (): void {
+
+    // Set up an initial token in the cache
+    $initialToken = 'initial-token';
+    $newToken = 'new-token';
+
+    Cache::put('oauth2_test_service_access_token', $initialToken, now()->addHour());
+    Cache::put('oauth2_test_service_expires_at', now()->addHour()->getTimestamp(), now()->addHour());
+
+    // First request fails with 401, second request succeeds after token refresh
+    Http::fake([
+        // First API request fails with 401
+        'https://api.example.com/data' => Http::sequence()
+            ->push(['error' => 'unauthorized', 'message' => 'Token expired'], 401)
+            ->push(['success' => true, 'data' => 'refreshed'], 200),
+
+        // Token refresh request succeeds
+        'https://auth.example.com/token' => Http::response([
+            'access_token' => $newToken,
+            'expires_in' => 3600,
+        ]),
+    ]);
+
+    // Make the request
+    $response = OAuth2::for('test_service')->get('https://api.example.com/data');
+
+    // Assert that the request succeeded after token refresh
+    expect($response->status())->toBe(200)
+        ->and($response->json('success'))->toBeTrue()
+        ->and($response->json('data'))->toBe('refreshed')
+        ->and(Cache::get('oauth2_test_service_access_token'))->toBe($newToken);
+
+    // Verify that both the API request and token refresh request were made
+    Http::assertSentCount(3); // Initial request + token refresh + retry request
 });
