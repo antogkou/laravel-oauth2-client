@@ -247,8 +247,22 @@ final class OAuth2Client
             $message .= " with status {$statusCode}";
         }
 
-        // Add exception message
-        $message .= ': '.$exception->getMessage();
+        // If the exception is already an OAuth2Exception, we don't want to nest the error messages
+        if ($exception instanceof OAuth2Exception) {
+            // Extract the original error message without the service and status prefix
+            $originalMessage = $exception->getMessage();
+
+            // Extract the actual error message without the prefix
+            if (preg_match('/API request failed for service .+ with status \d+: (.+)/', $originalMessage, $matches)) {
+                $message .= ': '.$matches[1];
+            } else {
+                // If we can't extract the actual error message, use the original message
+                $message .= ': '.$originalMessage;
+            }
+        } else {
+            // For other exceptions, add the exception message
+            $message .= ': '.$exception->getMessage();
+        }
 
         // Add error details from the response if available
         if (is_array($responseData)) {

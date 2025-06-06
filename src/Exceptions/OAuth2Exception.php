@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Antogkou\LaravelOAuth2Client\Exceptions;
 
+use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Http\JsonResponse;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
-final class OAuth2Exception extends RuntimeException
+final class OAuth2Exception extends RuntimeException implements Responsable
 {
+    private const DEFAULT_STATUS_CODE = Response::HTTP_INTERNAL_SERVER_ERROR;
+
     /** @var array<string, mixed> */
     private array $context = [];
 
@@ -23,11 +28,20 @@ final class OAuth2Exception extends RuntimeException
      * @param  string  $message  The exception message
      * @param  int  $code  The HTTP status code
      * @param  Throwable|null  $previous  The previous exception
+     * @param  array<string, mixed>  $context  Additional context information about the exception
      */
-    public function __construct(string $message, int $code = 0, ?Throwable $previous = null)
-    {
+    public function __construct(
+        string $message,
+        int $code = self::DEFAULT_STATUS_CODE,
+        ?Throwable $previous = null,
+        array $context = []
+    ) {
         parent::__construct($message, $code, $previous);
         $this->statusCode = $code;
+
+        if (!empty($context)) {
+            $this->withContext($context);
+        }
     }
 
     /**
@@ -35,7 +49,8 @@ final class OAuth2Exception extends RuntimeException
      */
     public function withContext(array $context): self
     {
-        $this->context = $context;
+        // Merge the new context with the existing one instead of replacing it
+        $this->context = array_merge($this->context, $context);
 
         // Extract status code and response data from context if available
         if (isset($context['status'])) {
@@ -101,5 +116,42 @@ final class OAuth2Exception extends RuntimeException
     public function hasErrorCode(string $errorCode, string $field = 'error'): bool
     {
         return $this->getErrorField($field) === $errorCode;
+    }
+
+    /**
+     * Convert the exception to an HTTP response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function toResponse($request): JsonResponse
+    {
+        $statusCode = $this->isValidHttpStatusCode($this->getStatusCode())
+            ? $this->getStatusCode()
+            : self::DEFAULT_STATUS_CODE;
+
+        $response = [
+            'message' => $this->getMessage(),
+            'code' => $this->getCode(),
+            'context' => $this->getContext(),
+        ];
+
+        // Include response data if available
+        if ($this->responseData !== null) {
+            $response['response_data'] = $this->responseData;
+        }
+
+        return new JsonResponse($response, $statusCode);
+    }
+
+    /**
+     * Check if the given code is a valid HTTP status code.
+     *
+     * @param  int  $code
+     * @return bool
+     */
+    private function isValidHttpStatusCode(int $code): bool
+    {
+        return $code >= 100 && $code < 600;
     }
 }
