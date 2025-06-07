@@ -25,6 +25,13 @@ use Illuminate\Support\Facades\Facade;
  */
 final class OAuth2 extends Facade
 {
+    /**
+     * Get an OAuth2 client for a configured service.
+     *
+     * @param  string  $service  The service name (see Antogkou\LaravelOAuth2Client\Types\OAuth2Services for available values)
+     *
+     * @see Antogkou\LaravelOAuth2Client\Types\OAuth2Services
+     */
     public static function for(string $service): OAuth2Client
     {
         return app(OAuth2Client::class, ['service' => $service]);

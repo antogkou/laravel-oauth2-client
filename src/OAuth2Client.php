@@ -41,7 +41,9 @@ final class OAuth2Client
     /**
      * Create a new OAuth2 client instance.
      *
-     * @param  string  $serviceName  The configured OAuth2 service name
+     * @param  string  $serviceName  The configured OAuth2 service name (see Antogkou\LaravelOAuth2Client\Types\OAuth2Services for available values)
+     *
+     * @see Antogkou\LaravelOAuth2Client\Types\OAuth2Services
      *
      * @throws OAuth2Exception If the service configuration is invalid
      */

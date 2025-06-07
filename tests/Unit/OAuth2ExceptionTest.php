@@ -31,9 +31,9 @@ test('toResponse uses clean message in response', function (): void {
         'API request failed for service foundations-core with status 410: This endpoint is deprecated. Please use the new API.',
         410
     );
-    
+
     $response = $exception->toResponse(request());
     $content = json_decode($response->getContent(), true);
-    
+
     expect($content['message'])->toBe('This endpoint is deprecated. Please use the new API.');
 });

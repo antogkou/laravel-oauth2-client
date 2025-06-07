@@ -68,6 +68,35 @@ SERVICE1_SCOPE = api
 SERVICE1_VERIFY = true # Set to false to disable SSL verification
 ```
 
+## Enabling IDE Autocompletion for Services
+
+To enable IDE autocompletion for your OAuth2 service names in `OAuth2::for('...')`, this package provides a type generation command:
+
+```bash
+php artisan oauth2:generate-types
+```
+
+This command scans your `config/oauth2-client.php` and generates a PHP interface listing all configured service names. IDEs like PHPStorm and VSCode (with PHP Intelephense) will then offer autocompletion and static analysis for the available services.
+
+**Workflow:**
+1. Add or update your services in `config/oauth2-client.php` under the `services` key.
+2. Run `php artisan oauth2:generate-types` to regenerate the types.
+3. Enjoy autocompletion in your IDE for `OAuth2::for('your_service')`.
+
+**Example:**
+```php
+// config/oauth2-client.php
+'services' => [
+    'service1' => [...],
+    'service2' => [...],
+],
+```
+
+After running the command, your IDE will suggest 'service1' and 'service2' in:
+```php
+OAuth2::for('service1')->get(...);
+```
+
 ## Usage
 
 ### Basic API Calls
@@ -122,7 +151,6 @@ $response = OAuth2::for('service1')->post('https://api.service.com/data', [
 // Get JSON response
 $data = $response->json();
 ```
-````
 
 ### Request Options
 
@@ -224,22 +252,53 @@ try {
 
 ## Testing
 
+The package uses [Pest PHP](https://pestphp.com/) for testing. To run all tests:
+
 ```bash
-# Run tests
 composer test
+```
 
-# Static analysis
+To run only unit tests:
+```bash
+composer test:unit
+```
+
+To run static analysis:
+```bash
 composer test:types
+```
 
-# Code formatting
+To check code style:
+```bash
 composer lint
 ```
 
-## Security
+To test the artisan type generation command:
+```bash
+php artisan oauth2:generate-types
+# Or run the dedicated test
+pest tests/Feature/GenerateOAuth2TypesCommandTest.php
+```
 
-- 🔒 **Never commit client secrets** - Always use environment variables
-- 🛡️ **Log Redaction** - Automatically redacts sensitive data from logs
-- 🔄 **Token Security** - Tokens are never stored in permanent storage
+**Adding New Services for Testing:**
+- Add your service to the `services` array in `config/oauth2-client.php`.
+- Run the type generation command to update IDE support.
+
+## Troubleshooting & FAQ
+
+**Q: I added a new service but it doesn't autocomplete in my IDE.**
+- Run `php artisan oauth2:generate-types` after updating your config.
+- Restart your IDE if needed.
+
+**Q: I get an exception about missing or invalid service configuration.**
+- Ensure your service is correctly defined in `config/oauth2-client.php`.
+- Check for typos in the service name.
+
+**Q: How do I test error handling or simulate network/cache failures?**
+- See the feature tests for examples of simulating HTTP and cache errors using Laravel's testing tools.
+
+**Q: How do I contribute tests or features?**
+- See the 'Contributing' section below. All new features should include tests.
 
 ## Contributing
 

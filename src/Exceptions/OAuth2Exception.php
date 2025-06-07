@@ -39,7 +39,7 @@ final class OAuth2Exception extends RuntimeException implements Responsable
         parent::__construct($message, $code, $previous);
         $this->statusCode = $code;
 
-        if (!empty($context)) {
+        if ($context !== []) {
             $this->withContext($context);
         }
     }
@@ -148,18 +148,17 @@ final class OAuth2Exception extends RuntimeException implements Responsable
      * Convert the exception to an HTTP response.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function toResponse($request): JsonResponse
     {
-        $statusCode = $this->isValidHttpStatusCode($this->getStatusCode())
-            ? $this->getStatusCode()
+        $statusCode = $this->isValidHttpStatusCode($this->statusCode)
+            ? $this->statusCode
             : self::DEFAULT_STATUS_CODE;
 
         $response = [
             'message' => $this->getCleanMessage(),
             'code' => $this->getCode(),
-            'context' => $this->getContext(),
+            'context' => $this->context,
         ];
 
         // Include response data if available
@@ -172,9 +171,6 @@ final class OAuth2Exception extends RuntimeException implements Responsable
 
     /**
      * Check if the given code is a valid HTTP status code.
-     *
-     * @param  int  $code
-     * @return bool
      */
     private function isValidHttpStatusCode(int $code): bool
     {
