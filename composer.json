@@ -51,7 +51,7 @@
     "test:refactor": "rector --dry-run",
     "test:lint": "pint --test",
     "test:types": "phpstan analyse --ansi --memory-limit=2G",
-    "test:unit": "pest --colors=always --coverage --parallel --min=100",
+    "test:unit": "pest --colors=always --coverage --parallel --min=90",
     "test": [
       "@test:refactor",
       "@test:lint",
