@@ -7,6 +7,7 @@ namespace Antogkou\LaravelOAuth2Client\Tests\Feature;
 use Antogkou\LaravelOAuth2Client\Exceptions\OAuth2Exception;
 use Antogkou\LaravelOAuth2Client\Facades\OAuth2;
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -168,4 +169,24 @@ test('handles cache failure gracefully', function (): void {
     }
     expect($exception)->toBeInstanceOf(Exception::class);
     expect($exception->getMessage())->toContain('Cache unavailable');
+});
+
+test('OAuth2Exception toResponse includes debug info with X-Debug header', function (): void {
+    $exception = new OAuth2Exception('Test error', 500);
+    $request = Request::create('/', 'GET', [], [], [], ['HTTP_X_DEBUG' => '1']);
+    $response = $exception->toResponse($request);
+    $data = $response->getData(true);
+    expect($data)->toHaveKeys(['message', 'code', 'context', 'exception', 'trace']);
+    expect($data['exception'])->toBe(OAuth2Exception::class);
+    expect($data['trace'])->toBeArray()->not->toBeEmpty();
+});
+
+test('OAuth2Exception toResponse includes debug info with debug query param', function (): void {
+    $exception = new OAuth2Exception('Test error', 500);
+    $request = request()->merge(['debug' => '1']);
+    $response = $exception->toResponse($request);
+    $data = $response->getData(true);
+    expect($data)->toHaveKeys(['message', 'code', 'context', 'exception', 'trace']);
+    expect($data['exception'])->toBe(OAuth2Exception::class);
+    expect($data['trace'])->toBeArray()->not->toBeEmpty();
 });

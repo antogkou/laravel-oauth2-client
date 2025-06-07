@@ -147,10 +147,15 @@ final class OAuth2Exception extends RuntimeException implements Responsable
     /**
      * Convert the exception to an HTTP response.
      *
+     * If the request contains an 'X-Debug' header or 'debug' query param, the response will include
+     * additional debug information (stack trace, exception class).
+     *
      * @param  \Illuminate\Http\Request  $request
      */
     public function toResponse($request): JsonResponse
     {
+        $debug = $request->header('X-Debug', null) || $request->query('debug', null);
+
         $statusCode = $this->isValidHttpStatusCode($this->statusCode)
             ? $this->statusCode
             : self::DEFAULT_STATUS_CODE;
@@ -164,6 +169,16 @@ final class OAuth2Exception extends RuntimeException implements Responsable
         // Include response data if available
         if ($this->responseData !== null) {
             $response['response_data'] = $this->responseData;
+        }
+
+        if ($debug) {
+            $response['exception'] = self::class;
+            $response['trace'] = collect($this->getTrace())->map(fn ($frame): array => [
+                'file' => $frame['file'] ?? null,
+                'line' => $frame['line'] ?? null,
+                'function' => $frame['function'],
+                'class' => $frame['class'] ?? null,
+            ])->all();
         }
 
         return new JsonResponse($response, $statusCode);

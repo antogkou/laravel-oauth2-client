@@ -250,6 +250,47 @@ try {
 }
 ```
 
+## Automatic JSON Error Responses
+
+To make error handling seamless, you can configure your Laravel application's global exception handler to automatically return JSON responses for OAuth2 errors. This way, users of your API will always receive a structured JSON error response, and you don't need to manually catch exceptions in your controllers.
+
+**How to set up:**
+
+1. Open (or create) `app/Exceptions/Handler.php` in your Laravel application.
+2. Add the following to your `render` method:
+
+```php
+use Antogkou\LaravelOAuth2Client\Exceptions\OAuth2Exception;
+
+public function render($request, Throwable $exception)
+{
+    if ($exception instanceof OAuth2Exception) {
+        return $exception->toResponse($request);
+    }
+    return parent::render($request, $exception);
+}
+```
+
+**Debug Mode:**
+- If you include an `X-Debug: 1` header or a `?debug=1` query parameter in your request, the error response will include additional debug information (stack trace, exception class).
+- This is useful for development and debugging, but should be used with care in production.
+
+**Example error response (with debug):**
+```json
+{
+  "message": "Invalid token response format for service: myservice",
+  "code": 500,
+  "context": { ... },
+  "exception": "Antogkou\\LaravelOAuth2Client\\Exceptions\\OAuth2Exception",
+  "trace": [
+    { "file": "/path/to/file.php", "line": 123, "function": "...", "class": "..." },
+    ...
+  ]
+}
+```
+
+This setup is optional but highly recommended for API projects using this package.
+
 ## Testing
 
 The package uses [Pest PHP](https://pestphp.com/) for testing. To run all tests:

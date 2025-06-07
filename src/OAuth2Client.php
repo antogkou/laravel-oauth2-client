@@ -16,11 +16,11 @@ use Throwable;
 /**
  * OAuth2 Client for handling API requests with automatic token management.
  *
- * @method Response get(string $url, array $options = [])
- * @method Response post(string $url, array $options = [])
- * @method Response put(string $url, array $options = [])
- * @method Response patch(string $url, array $options = [])
- * @method Response delete(string $url, array $options = [])
+ * @method Response get(string $url, array<string, mixed> $options = [])
+ * @method Response post(string $url, array<string, mixed> $options = [])
+ * @method Response put(string $url, array<string, mixed> $options = [])
+ * @method Response patch(string $url, array<string, mixed> $options = [])
+ * @method Response delete(string $url, array<string, mixed> $options = [])
  */
 final class OAuth2Client
 {
@@ -230,7 +230,7 @@ final class OAuth2Client
             if (method_exists($response, 'status')) {
                 $statusCode = $response->status();
             }
-        } elseif (property_exists($exception, 'response') && isset($exception->response)) {
+        } elseif (property_exists($exception, 'response') && (property_exists($exception, 'response') && $exception->response !== null)) {
             $response = $exception->response;
             if (method_exists($response, 'body')) {
                 $responseData = $this->safeJsonDecode($response->body());
@@ -491,7 +491,7 @@ final class OAuth2Client
             if (method_exists($response, 'status')) {
                 $statusCode = $response->status();
             }
-        } elseif (property_exists($exception, 'response') && isset($exception->response)) {
+        } elseif (property_exists($exception, 'response') && (property_exists($exception, 'response') && $exception->response !== null)) {
             $response = $exception->response;
             if (method_exists($response, 'body')) {
                 $responseData = $this->safeJsonDecode($response->body());
