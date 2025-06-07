@@ -91,6 +91,7 @@ test('retries request with new token on 401 error', function (): void {
 
     Cache::put('oauth2_test_service_access_token', $initialToken, now()->addHour());
     Cache::put('oauth2_test_service_expires_at', now()->addHour()->getTimestamp(), now()->addHour());
+    config(['cache.default' => 'sync']);
 
     Http::fake([
         'https://api.example.com/data' => Http::sequence()
