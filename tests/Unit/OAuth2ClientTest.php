@@ -30,9 +30,9 @@ describe('OAuth2Client', function (): void {
 
     it('__call throws on missing/invalid URL', function (): void {
         $client = new OAuth2Client('test_service');
-        expect(fn(): Response => $client->__call('get', []))->toThrow(OAuth2Exception::class)
-            ->and(fn(): Response => $client->__call('get', [123]))->toThrow(OAuth2Exception::class)
-            ->and(fn(): Response => $client->__call('invalidMethod',
+        expect(fn (): Response => $client->__call('get', []))->toThrow(OAuth2Exception::class)
+            ->and(fn (): Response => $client->__call('get', [123]))->toThrow(OAuth2Exception::class)
+            ->and(fn (): Response => $client->__call('invalidMethod',
                 ['https://example.com']))->toThrow(OAuth2Exception::class);
     });
 
@@ -88,7 +88,6 @@ describe('OAuth2Client', function (): void {
             ->and($ex->getContext())->toMatchArray(['service' => 'test_service']);
     });
 
-
     it('shouldDisableSSLVerification returns correct value', function (): void {
         config(['oauth2-client.services.test_service' => [
             'client_id' => 'test_id',
@@ -120,7 +119,6 @@ describe('OAuth2Client', function (): void {
         $result = (new ReflectionMethod($client, 'shouldDisableSSLVerification'))->invoke($client);
         expect($result)->toBeFalse();
     });
-
 
     it('storeToken updates cache', function (): void {
         $client = new OAuth2Client('test_service');
