@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Antogkou\LaravelOAuth2Client\Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 |
 */
 
-pest()->extend(TestCase::class, RefreshDatabase::class)->beforeEach(function (): void {
+pest()->extend(TestCase::class, LazilyRefreshDatabase::class)->beforeEach(function (): void {
     Storage::fake('public');
     Http::preventStrayRequests();
 });

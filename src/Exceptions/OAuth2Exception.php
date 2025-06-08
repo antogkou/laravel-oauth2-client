@@ -39,7 +39,7 @@ final class OAuth2Exception extends RuntimeException implements Responsable
         parent::__construct($message, $code, $previous);
         $this->statusCode = $code;
 
-        if (!empty($context)) {
+        if ($context !== []) {
             $this->withContext($context);
         }
     }
@@ -147,19 +147,23 @@ final class OAuth2Exception extends RuntimeException implements Responsable
     /**
      * Convert the exception to an HTTP response.
      *
+     * If the request contains an 'X-Debug' header or 'debug' query param, the response will include
+     * additional debug information (stack trace, exception class).
+     *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function toResponse($request): JsonResponse
     {
-        $statusCode = $this->isValidHttpStatusCode($this->getStatusCode())
-            ? $this->getStatusCode()
+        $debug = $request->header('X-Debug', null) || $request->query('debug', null);
+
+        $statusCode = $this->isValidHttpStatusCode($this->statusCode)
+            ? $this->statusCode
             : self::DEFAULT_STATUS_CODE;
 
         $response = [
             'message' => $this->getCleanMessage(),
             'code' => $this->getCode(),
-            'context' => $this->getContext(),
+            'context' => $this->context,
         ];
 
         // Include response data if available
@@ -167,14 +171,21 @@ final class OAuth2Exception extends RuntimeException implements Responsable
             $response['response_data'] = $this->responseData;
         }
 
+        if ($debug) {
+            $response['exception'] = self::class;
+            $response['trace'] = collect($this->getTrace())->map(fn ($frame): array => [
+                'file' => $frame['file'] ?? null,
+                'line' => $frame['line'] ?? null,
+                'function' => $frame['function'],
+                'class' => $frame['class'] ?? null,
+            ])->all();
+        }
+
         return new JsonResponse($response, $statusCode);
     }
 
     /**
      * Check if the given code is a valid HTTP status code.
-     *
-     * @param  int  $code
-     * @return bool
      */
     private function isValidHttpStatusCode(int $code): bool
     {

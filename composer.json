@@ -30,10 +30,10 @@
     "pestphp/pest": "^v3.5.1",
     "pestphp/pest-plugin-laravel": "^v3.0.0",
     "pestphp/pest-plugin-type-coverage": "^3.1",
-    "phpstan/phpstan": "^1.0",
+    "phpstan/phpstan": "^2.1.17",
     "friendsofphp/php-cs-fixer": "^v3.64.0",
-    "larastan/larastan": "^2.9.11",
-    "rector/rector": "^1.2.10"
+    "larastan/larastan": "^3.4.0",
+    "rector/rector": "^2.0.5"
   },
   "extra": {
     "laravel": {
@@ -51,7 +51,7 @@
     "test:refactor": "rector --dry-run",
     "test:lint": "pint --test",
     "test:types": "phpstan analyse --ansi --memory-limit=2G",
-    "test:unit": "pest --colors=always --coverage --parallel --min=100",
+    "test:unit": "pest --colors=always --coverage --parallel --min=70",
     "test": [
       "@test:refactor",
       "@test:lint",

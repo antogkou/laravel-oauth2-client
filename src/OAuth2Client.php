@@ -15,12 +15,6 @@ use Throwable;
 
 /**
  * OAuth2 Client for handling API requests with automatic token management.
- *
- * @method Response get(string $url, array $options = [])
- * @method Response post(string $url, array $options = [])
- * @method Response put(string $url, array $options = [])
- * @method Response patch(string $url, array $options = [])
- * @method Response delete(string $url, array $options = [])
  */
 final class OAuth2Client
 {
@@ -41,7 +35,9 @@ final class OAuth2Client
     /**
      * Create a new OAuth2 client instance.
      *
-     * @param  string  $serviceName  The configured OAuth2 service name
+     * @param  string  $serviceName  The configured OAuth2 service name (see Antogkou\LaravelOAuth2Client\Types\OAuth2Services for available values)
+     *
+     * @see Antogkou\LaravelOAuth2Client\Types\OAuth2Services
      *
      * @throws OAuth2Exception If the service configuration is invalid
      */
@@ -101,6 +97,71 @@ final class OAuth2Client
     }
 
     /**
+     * Make a GET request.
+     *
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Request options
+     *
+     * @throws OAuth2Exception
+     */
+    public function get(string $url, array $options = []): Response
+    {
+        return $this->request('get', $url, $options);
+    }
+
+    /**
+     * Make a POST request.
+     *
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Request options
+     *
+     * @throws OAuth2Exception
+     */
+    public function post(string $url, array $options = []): Response
+    {
+        return $this->request('post', $url, $options);
+    }
+
+    /**
+     * Make a PUT request.
+     *
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Request options
+     *
+     * @throws OAuth2Exception
+     */
+    public function put(string $url, array $options = []): Response
+    {
+        return $this->request('put', $url, $options);
+    }
+
+    /**
+     * Make a PATCH request.
+     *
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Request options
+     *
+     * @throws OAuth2Exception
+     */
+    public function patch(string $url, array $options = []): Response
+    {
+        return $this->request('patch', $url, $options);
+    }
+
+    /**
+     * Make a DELETE request.
+     *
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Request options
+     *
+     * @throws OAuth2Exception
+     */
+    public function delete(string $url, array $options = []): Response
+    {
+        return $this->request('delete', $url, $options);
+    }
+
+    /**
      * Make an HTTP request with OAuth2 authentication.
      *
      * @param  string  $method  HTTP method
@@ -118,7 +179,6 @@ final class OAuth2Client
             $http = Http::withToken($this->accessToken)
                 ->acceptJson();
 
-            // Disable SSL verification if configured
             if ($this->shouldDisableSSLVerification()) {
                 $http = $http->withoutVerifying();
             }
@@ -169,7 +229,6 @@ final class OAuth2Client
             // Force fetch a new token
             $this->fetchNewToken();
 
-            // Retry the request with the new token, marking it as a retry
             return $this->request($method, $url, $options, true);
         }
 
@@ -183,10 +242,8 @@ final class OAuth2Client
 
         Log::error("API request failed for service {$this->serviceName}", $context);
 
-        // Build a more detailed error message
         $message = "API request failed for service {$this->serviceName} with status {$statusCode}";
 
-        // Add error details from the response if available
         if (is_array($responseData)) {
             if (isset($responseData['error'])) {
                 $message .= ": {$responseData['error']}";
@@ -215,10 +272,8 @@ final class OAuth2Client
      */
     private function handleRequestException(string $method, string $url, Throwable $exception, array $options): never
     {
-        // Extract HTTP status code if available
         $statusCode = $exception->getCode() ?: 0;
 
-        // Try to extract response data if it's a HTTP client exception
         $responseData = null;
         if (method_exists($exception, 'getResponse') && $exception->getResponse() !== null) {
             $response = $exception->getResponse();
@@ -228,7 +283,7 @@ final class OAuth2Client
             if (method_exists($response, 'status')) {
                 $statusCode = $response->status();
             }
-        } elseif (property_exists($exception, 'response') && isset($exception->response)) {
+        } elseif (property_exists($exception, 'response') && (property_exists($exception, 'response') && $exception->response !== null)) {
             $response = $exception->response;
             if (method_exists($response, 'body')) {
                 $responseData = $this->safeJsonDecode($response->body());
@@ -246,7 +301,6 @@ final class OAuth2Client
             'options' => $this->sanitizeOptions($options),
         ];
 
-        // Add response data to context if available
         if ($responseData !== null) {
             $context['response'] = $responseData;
             $context['status'] = $statusCode;
@@ -254,32 +308,24 @@ final class OAuth2Client
 
         Log::error("API request exception for service {$this->serviceName}", $context);
 
-        // Build a more detailed error message
         $message = "API request failed for service {$this->serviceName}";
 
-        // Add status code if available
         if ($statusCode > 0) {
             $message .= " with status {$statusCode}";
         }
 
-        // If the exception is already an OAuth2Exception, we don't want to nest the error messages
         if ($exception instanceof OAuth2Exception) {
-            // Extract the original error message without the service and status prefix
             $originalMessage = $exception->getMessage();
 
-            // Extract the actual error message without the prefix
             if (preg_match('/API request failed for service .+ with status \d+: (.+)/', $originalMessage, $matches)) {
                 $message .= ': '.$matches[1];
             } else {
-                // If we can't extract the actual error message, use the original message
                 $message .= ': '.$originalMessage;
             }
         } else {
-            // For other exceptions, add the exception message
             $message .= ': '.$exception->getMessage();
         }
 
-        // Add error details from the response if available
         if (is_array($responseData)) {
             if (isset($responseData['error'])) {
                 $message .= " ({$responseData['error']})";
@@ -489,7 +535,7 @@ final class OAuth2Client
             if (method_exists($response, 'status')) {
                 $statusCode = $response->status();
             }
-        } elseif (property_exists($exception, 'response') && isset($exception->response)) {
+        } elseif (property_exists($exception, 'response') && (property_exists($exception, 'response') && $exception->response !== null)) {
             $response = $exception->response;
             if (method_exists($response, 'body')) {
                 $responseData = $this->safeJsonDecode($response->body());
