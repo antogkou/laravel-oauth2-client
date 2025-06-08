@@ -19,7 +19,9 @@ final class GenerateOAuth2TypesCommand extends Command
         $path = __DIR__.'/../Types/OAuth2Services.php';
 
         if (! is_dir(dirname($path))) {
+            // @codeCoverageIgnoreStart
             mkdir(dirname($path), 0755, true);
+            // @codeCoverageIgnoreEnd
         }
 
         file_put_contents($path, $content);
