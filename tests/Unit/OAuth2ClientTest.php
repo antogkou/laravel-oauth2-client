@@ -30,8 +30,10 @@ describe('OAuth2Client', function (): void {
 
     it('__call throws on missing/invalid URL', function (): void {
         $client = new OAuth2Client('test_service');
-        expect(fn (): Response => $client->__call('get', []))->toThrow(OAuth2Exception::class);
-        expect(fn (): Response => $client->__call('get', [123]))->toThrow(OAuth2Exception::class);
+        expect(fn(): Response => $client->__call('get', []))->toThrow(OAuth2Exception::class)
+            ->and(fn(): Response => $client->__call('get', [123]))->toThrow(OAuth2Exception::class)
+            ->and(fn(): Response => $client->__call('invalidMethod',
+                ['https://example.com']))->toThrow(OAuth2Exception::class);
     });
 
     it('sanitizeOptions redacts sensitive fields', function (): void {
@@ -43,10 +45,10 @@ describe('OAuth2Client', function (): void {
             'other' => 'ok',
         ];
         $san = (new ReflectionMethod($client, 'sanitizeOptions'))->invoke($client, $opts);
-        expect($san['json'])->toBe('[Redacted for security]');
-        expect($san['form_params'])->toBe('[Redacted for security]');
-        expect($san['multipart'])->toBe('[Redacted for security]');
-        expect($san['other'])->toBe('ok');
+        expect($san['json'])->toBe('[Redacted for security]')
+            ->and($san['form_params'])->toBe('[Redacted for security]')
+            ->and($san['multipart'])->toBe('[Redacted for security]')
+            ->and($san['other'])->toBe('ok');
     });
 
     it('getCachedToken throws on invalid timestamp', function (): void {
@@ -82,7 +84,52 @@ describe('OAuth2Client', function (): void {
     it('createConfigException returns exception with context', function (): void {
         $client = new OAuth2Client('test_service');
         $ex = (new ReflectionMethod($client, 'createConfigException'))->invoke($client, 'fail');
-        expect($ex)->toBeInstanceOf(OAuth2Exception::class);
-        expect($ex->getContext())->toMatchArray(['service' => 'test_service']);
+        expect($ex)->toBeInstanceOf(OAuth2Exception::class)
+            ->and($ex->getContext())->toMatchArray(['service' => 'test_service']);
+    });
+
+
+    it('shouldDisableSSLVerification returns correct value', function (): void {
+        config(['oauth2-client.services.test_service' => [
+            'client_id' => 'test_id',
+            'client_secret' => 'test_secret',
+            'token_url' => 'https://example.com/token',
+            'verify' => false,
+        ]]);
+        $client = new OAuth2Client('test_service');
+        $result = (new ReflectionMethod($client, 'shouldDisableSSLVerification'))->invoke($client);
+        expect($result)->toBeTrue();
+
+        config(['oauth2-client.services.test_service' => [
+            'client_id' => 'test_id',
+            'client_secret' => 'test_secret',
+            'token_url' => 'https://example.com/token',
+            'verify' => true,
+        ]]);
+        $client = new OAuth2Client('test_service');
+        $result = (new ReflectionMethod($client, 'shouldDisableSSLVerification'))->invoke($client);
+        expect($result)->toBeFalse();
+
+        // Test with verify not set
+        config(['oauth2-client.services.test_service' => [
+            'client_id' => 'test_id',
+            'client_secret' => 'test_secret',
+            'token_url' => 'https://example.com/token',
+        ]]);
+        $client = new OAuth2Client('test_service');
+        $result = (new ReflectionMethod($client, 'shouldDisableSSLVerification'))->invoke($client);
+        expect($result)->toBeFalse();
+    });
+
+
+    it('storeToken updates cache', function (): void {
+        $client = new OAuth2Client('test_service');
+
+        // Call storeToken
+        (new ReflectionMethod($client, 'storeToken'))->invoke($client, 'new_token', 3600);
+
+        // Check that cache was updated
+        expect(Cache::get('oauth2_test_service_access_token'))->toBe('new_token')
+            ->and(Cache::has('oauth2_test_service_expires_at'))->toBeTrue();
     });
 });
