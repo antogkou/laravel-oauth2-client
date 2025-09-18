@@ -162,6 +162,51 @@ final class OAuth2Client
     }
 
     /**
+     * Make a POST request with JSON payload.
+     *
+     * @param  array<string, mixed>  $payload  JSON payload
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Additional request options
+     *
+     * @throws OAuth2Exception
+     */
+    public function postJson(array $payload, string $url, array $options = []): Response
+    {
+        $options['json'] = $payload;
+        return $this->request('post', $url, $options);
+    }
+
+    /**
+     * Make a PUT request with JSON payload.
+     *
+     * @param  array<string, mixed>  $payload  JSON payload
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Additional request options
+     *
+     * @throws OAuth2Exception
+     */
+    public function putJson(array $payload, string $url, array $options = []): Response
+    {
+        $options['json'] = $payload;
+        return $this->request('put', $url, $options);
+    }
+
+    /**
+     * Make a PATCH request with JSON payload.
+     *
+     * @param  array<string, mixed>  $payload  JSON payload
+     * @param  string  $url  Request URL
+     * @param  array<string, mixed>  $options  Additional request options
+     *
+     * @throws OAuth2Exception
+     */
+    public function patchJson(array $payload, string $url, array $options = []): Response
+    {
+        $options['json'] = $payload;
+        return $this->request('patch', $url, $options);
+    }
+
+    /**
      * Make an HTTP request with OAuth2 authentication.
      *
      * @param  string  $method  HTTP method

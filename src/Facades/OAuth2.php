@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Facade;
  * @method static Response put(string $url, array<string, mixed> $options = []) Make a PUT request
  * @method static Response patch(string $url, array<string, mixed> $options = []) Make a PATCH request
  * @method static Response delete(string $url, array<string, mixed> $options = []) Make a DELETE request
+ * @method static Response postJson(array<string, mixed> $payload, string $url, array<string, mixed> $options = []) Make a POST request with JSON payload
+ * @method static Response putJson(array<string, mixed> $payload, string $url, array<string, mixed> $options = []) Make a PUT request with JSON payload
+ * @method static Response patchJson(array<string, mixed> $payload, string $url, array<string, mixed> $options = []) Make a PATCH request with JSON payload
  * @method static Response request(string $method, string $url, array<string, mixed> $options = []) Make a custom HTTP request
  *
  * @throws OAuth2Exception When a request fails or configuration is invalid

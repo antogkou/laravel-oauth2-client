@@ -152,6 +152,37 @@ $response = OAuth2::for('service1')->post('https://api.service.com/data', [
 $data = $response->json();
 ```
 
+### JSON Convenience Methods
+
+For easier JSON API integration, you can use the convenience methods that accept the payload as the first parameter:
+
+```php
+// POST with JSON payload - convenience method
+$payload = ['name' => 'John Doe', 'email' => 'john@example.com'];
+$response = OAuth2::for('service1')->postJson($payload, 'https://api.service.com/data');
+
+// PUT with JSON payload - convenience method
+$payload = ['name' => 'Updated Name', 'status' => 'active'];
+$response = OAuth2::for('service1')->putJson($payload, 'https://api.service.com/data/1');
+
+// PATCH with JSON payload - convenience method
+$payload = ['status' => 'inactive'];
+$response = OAuth2::for('service1')->patchJson($payload, 'https://api.service.com/data/1');
+
+// You can still pass additional options as the third parameter
+$payload = ['name' => 'John Doe'];
+$options = ['headers' => ['X-Custom-Header' => 'value']];
+$response = OAuth2::for('service1')->postJson($payload, 'https://api.service.com/data', $options);
+```
+
+These convenience methods are equivalent to using the standard methods with the `json` option:
+
+```php
+// These two calls are equivalent:
+OAuth2::for('service1')->postJson(['name' => 'John'], 'https://api.service.com/data');
+OAuth2::for('service1')->post('https://api.service.com/data', ['json' => ['name' => 'John']]);
+```
+
 ### Request Options
 
 The package supports various request options that can be passed as an array:
@@ -218,6 +249,11 @@ OAuth2::for('service1')->put($url, $options = []);
 OAuth2::for('service1')->patch($url, $options = []);
 OAuth2::for('service1')->delete($url, $options = []);
 OAuth2::for('service1')->request($method, $url, $options = []);
+
+// JSON convenience methods
+OAuth2::for('service1')->postJson($payload, $url, $options = []);
+OAuth2::for('service1')->putJson($payload, $url, $options = []);
+OAuth2::for('service1')->patchJson($payload, $url, $options = []);
 ```
 
 ### Response Handling
