@@ -184,3 +184,126 @@ test('OAuth2Exception toResponse includes debug info with debug query param', fu
         ->and($data['exception'])->toBe(OAuth2Exception::class)
         ->and($data['trace'])->toBeArray()->not->toBeEmpty();
 });
+
+test('postJson sends JSON payload correctly', function (): void {
+    Http::fake([
+        'https://auth.example.com/token' => Http::response([
+            'access_token' => 'test-token',
+            'expires_in' => 3600,
+        ]),
+        'https://api.example.com/data' => Http::response(['success' => true, 'id' => 123], 201),
+    ]);
+
+    $payload = ['name' => 'John Doe', 'email' => 'john@example.com'];
+    $response = OAuth2::for('test_service')->postJson($payload, 'https://api.example.com/data');
+
+    expect($response->status())->toBe(201)
+        ->and($response->json('success'))->toBeTrue()
+        ->and($response->json('id'))->toBe(123);
+
+    Http::assertSent(function ($request) use ($payload) {
+        return $request->url() === 'https://api.example.com/data' &&
+               $request->method() === 'POST' &&
+               $request->data() === $payload;
+    });
+});
+
+test('putJson sends JSON payload correctly', function (): void {
+    Http::fake([
+        'https://auth.example.com/token' => Http::response([
+            'access_token' => 'test-token',
+            'expires_in' => 3600,
+        ]),
+        'https://api.example.com/data/1' => Http::response(['success' => true, 'updated' => true], 200),
+    ]);
+
+    $payload = ['name' => 'Jane Doe', 'status' => 'active'];
+    $response = OAuth2::for('test_service')->putJson($payload, 'https://api.example.com/data/1');
+
+    expect($response->status())->toBe(200)
+        ->and($response->json('success'))->toBeTrue()
+        ->and($response->json('updated'))->toBeTrue();
+
+    Http::assertSent(function ($request) use ($payload) {
+        return $request->url() === 'https://api.example.com/data/1' &&
+               $request->method() === 'PUT' &&
+               $request->data() === $payload;
+    });
+});
+
+test('patchJson sends JSON payload correctly', function (): void {
+    Http::fake([
+        'https://auth.example.com/token' => Http::response([
+            'access_token' => 'test-token',
+            'expires_in' => 3600,
+        ]),
+        'https://api.example.com/data/1' => Http::response(['success' => true, 'patched' => true], 200),
+    ]);
+
+    $payload = ['status' => 'updated'];
+    $response = OAuth2::for('test_service')->patchJson($payload, 'https://api.example.com/data/1');
+
+    expect($response->status())->toBe(200)
+        ->and($response->json('success'))->toBeTrue()
+        ->and($response->json('patched'))->toBeTrue();
+
+    Http::assertSent(function ($request) use ($payload) {
+        return $request->url() === 'https://api.example.com/data/1' &&
+               $request->method() === 'PATCH' &&
+               $request->data() === $payload;
+    });
+});
+
+test('postJson can accept additional options', function (): void {
+    Http::fake([
+        'https://auth.example.com/token' => Http::response([
+            'access_token' => 'test-token',
+            'expires_in' => 3600,
+        ]),
+        'https://api.example.com/data' => Http::response(['success' => true], 201),
+    ]);
+
+    $payload = ['name' => 'John Doe'];
+    $options = ['headers' => ['X-Custom-Header' => 'custom-value']];
+    
+    $response = OAuth2::for('test_service')->postJson($payload, 'https://api.example.com/data', $options);
+
+    expect($response->status())->toBe(201)
+        ->and($response->json('success'))->toBeTrue();
+
+    Http::assertSent(function ($request) use ($payload) {
+        return $request->url() === 'https://api.example.com/data' &&
+               $request->method() === 'POST' &&
+               $request->data() === $payload &&
+               $request->hasHeader('X-Custom-Header', 'custom-value');
+    });
+});
+
+test('json convenience methods preserve existing options', function (): void {
+    Http::fake([
+        'https://auth.example.com/token' => Http::response([
+            'access_token' => 'test-token',
+            'expires_in' => 3600,
+        ]),
+        'https://api.example.com/data' => Http::response(['success' => true], 201),
+    ]);
+
+    $payload = ['name' => 'John Doe'];
+    // Test that existing 'json' option gets overridden but other options are preserved
+    $options = [
+        'headers' => ['X-Custom-Header' => 'custom-value'],
+        'json' => ['this' => 'should be overridden'],
+        'timeout' => 30
+    ];
+    
+    $response = OAuth2::for('test_service')->postJson($payload, 'https://api.example.com/data', $options);
+
+    expect($response->status())->toBe(201);
+
+    Http::assertSent(function ($request) use ($payload) {
+        return $request->url() === 'https://api.example.com/data' &&
+               $request->method() === 'POST' &&
+               $request->data() === $payload &&
+               $request->hasHeader('X-Custom-Header', 'custom-value');
+    });
+});
